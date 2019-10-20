@@ -8,28 +8,31 @@ import           Data.Map(Map)
 
 
 data TermType
-  = E3 -- plus/minus
-  | E2 -- mult/div
-  | E1 -- paren/lit
+  = E1 -- plus
+  | E2 -- minus
+  | E3 -- mult/div
+  | E4 -- paren/lit
   | St -- statement
   | P  -- program
   deriving (Eq, Show)
 
 data AST (termType :: TermType) where
-  ASTPlus  :: AST 'E2 -> AST 'E3 -> AST 'E3
-  ASTMinus :: AST 'E2 -> AST 'E3 -> AST 'E3
-  AST23    :: AST 'E2            -> AST 'E3
+  ASTPlus  :: AST 'E2 -> AST 'E1 -> AST 'E1
+  AST21    :: AST 'E2            -> AST 'E1
 
-  ASTMult  :: AST 'E1 -> AST 'E2 -> AST 'E2
-  ASTDiv   :: AST 'E1 -> AST 'E2 -> AST 'E2
-  AST12    :: AST 'E1            -> AST 'E2
+  ASTMinus :: AST 'E2 -> AST 'E3 -> AST 'E2
+  AST32    :: AST 'E3            -> AST 'E2
 
-  ASTInt   :: Int                -> AST 'E1
-  ASTVar   :: String             -> AST 'E1
-  ASTParen :: AST 'E3            -> AST 'E1
+  ASTMult  :: AST 'E3 -> AST 'E4 -> AST 'E3
+  ASTDiv   :: AST 'E3 -> AST 'E4 -> AST 'E3
+  AST43    :: AST 'E4            -> AST 'E3
 
-  ASTExpr  :: AST 'E3            -> AST 'St
-  ASTAss   :: String -> AST 'E3  -> AST 'St
+  ASTInt   :: Int                -> AST 'E4
+  ASTVar   :: String             -> AST 'E4
+  ASTParen :: AST 'E1            -> AST 'E4
+
+  ASTExpr  :: AST 'E1            -> AST 'St
+  ASTAss   :: String -> AST 'E1  -> AST 'St
 
   AST      :: [AST 'St]          -> AST 'P
 deriving instance Eq (AST t)
@@ -56,43 +59,25 @@ type family EntailedBy (t :: TermType) :: *
 type instance EntailedBy 'E1 = Expr
 type instance EntailedBy 'E2 = Expr
 type instance EntailedBy 'E3 = Expr
+type instance EntailedBy 'E4 = Expr
 type instance EntailedBy 'St = InstantStmt
 type instance EntailedBy 'P  = Instant
 
 
 entail :: AST t -> EntailedBy t
-entail (AST stmts) = Instant $ fmap entail stmts
-entail (ASTExpr e) = IExpr (rtolBalance $ entail e)
-entail (ASTAss name e) = IAssg name (rtolBalance $ entail e)
+entail (AST stmts) = Instant (fmap entail stmts)
+entail (ASTExpr e) = IExpr (entail e)
+entail (ASTAss name e) = IAssg name (entail e)
+entail (ASTPlus a b) = EPlus (entail a) (entail b)
+entail (AST21 e) = entail e
+entail (ASTMinus a b) = EMinus (entail a) (entail b)
+entail (AST32 e) = entail e
 entail (ASTMult a b) = EMult (entail a) (entail b)
 entail (ASTDiv a b) = EDiv (entail a) (entail b)
-entail (AST12 e) = entail e
-entail (ASTPlus a b) = EPlus (entail a) (entail b)
-entail (ASTMinus a b) = EMinus (entail a) (entail b)
-entail (AST23 e) = entail e
+entail (AST43 e) = entail e
 entail (ASTInt i) = EInt i
 entail (ASTVar n) = EVar n
 entail (ASTParen e) = entail e
-
-
--- Rebalances tree to be left-assotiative
-rtolBalance :: Expr -> Expr
-rtolBalance = \case
-  -- task requirements enforce right-assoc of +
-  (EMinus a (EMinus b c)) -> rtolBalance (EMinus (EMinus a b) c)
-  (EPlus a (EMinus b c))  -> rtolBalance (EMinus (EPlus a b) c)
-  (EMinus a (EPlus b c))  -> rtolBalance (EPlus (EMinus a b) c)
-  (EMult a (EMult b c))   -> rtolBalance (EMult (EMult a b) c)
-  (EDiv a (EDiv b c))     -> rtolBalance (EDiv (EDiv a b) c)
-  (EMult a (EDiv b c))    -> rtolBalance (EDiv (EMult a b) c)
-  (EDiv a (EMult b c))    -> rtolBalance (EMult (EDiv a b) c)
-
-  EPlus a b               -> EPlus (rtolBalance a) (rtolBalance b)
-  EMinus a b              -> EMinus (rtolBalance a) (rtolBalance b)
-  EMult a b               -> EMult (rtolBalance a) (rtolBalance b)
-  EDiv a b                -> EDiv (rtolBalance a) (rtolBalance b)
-
-  other -> other
 
 
 varMap :: Instant -> Map String Int

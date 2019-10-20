@@ -1,5 +1,6 @@
+{-# LANGUAGE RankNTypes #-}
 module Instant.Parse where
-
+import Debug.Trace
 import           Control.Applicative        (liftA2)
 import           Control.Monad
 import           Control.Monad.Identity
@@ -46,34 +47,49 @@ paren :: Parser a -> Parser a
 paren = between (L.symbol skip "(") (L.symbol skip ")")
 
 
+infixL :: Parser (a -> b -> a) -> Parser b -> a -> Parser a
+infixL op p x = do
+  f <- op
+  y <- p
+  let r = f x y
+  infixL op p r <|> return r
+
+
 astE1 :: Parser (AST 'E1)
-astE1 = msum
-  [ ASTInt <$> unsigned
-  , ASTVar <$> lId
-  , ASTParen <$> paren astE3
+astE1 = choice
+  [ liftA2 ASTPlus (try $ astE2 <* operator "+") astE1
+  , AST21 <$> astE2
   ]
 
 
 astE2 :: Parser (AST 'E2)
-astE2 = msum
-  [ liftA2 ASTMult (try $ astE1 <* operator "*") astE2
-  , liftA2 ASTDiv (try $ astE1 <* operator "/") astE2
-  , AST12 <$> astE1
+astE2 = choice
+  [ try $ (AST32 <$> astE3) >>= infixL (ASTMinus <$ operator "-") astE3
+  , AST32 <$> astE3
   ]
 
 
 astE3 :: Parser (AST 'E3)
-astE3 = msum
-  [ liftA2 ASTPlus (try $ astE2 <* operator "+") astE3
-  , liftA2 ASTMinus (try $ astE2 <* operator "-") astE3
-  , AST23 <$> astE2
+astE3 = choice
+  [ try $ (AST43 <$> astE4) >>=
+    infixL ( ASTMult <$ operator "*" <|>
+             ASTDiv <$ operator "/"
+           ) astE4
+  , AST43 <$> astE4
   ]
 
 
+astE4 :: Parser (AST 'E4)
+astE4 = choice
+  [ ASTInt <$> unsigned
+  , ASTVar <$> lId
+  , ASTParen <$> paren astE1
+  ]
+
 astSt :: Parser (AST 'St)
-astSt = msum
-  [ liftA2 ASTAss (try $ lId <* operator "=") astE3
-  , ASTExpr <$> astE3
+astSt = choice
+  [ liftA2 ASTAss (try $ lId <* operator "=") astE1
+  , ASTExpr <$> astE1
   ]
 
 
