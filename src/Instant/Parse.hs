@@ -1,6 +1,6 @@
 {-# LANGUAGE RankNTypes #-}
 module Instant.Parse where
-import Debug.Trace
+
 import           Control.Applicative        (liftA2)
 import           Control.Monad
 import           Control.Monad.Identity
