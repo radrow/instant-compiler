@@ -1,6 +1,6 @@
 # instant-lang
 
-Assessment task for MIMUW course "Methods of Implementing Programming Languages"
+Assessment task for MIMUW course "Compiler Construction"
 
 ## Dependencies
 
