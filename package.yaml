@@ -1,0 +1,57 @@
+name:                instant-lang
+version:             0.1.0.0
+github:              "radrow/instant-lang"
+license:             BSD3
+author:              "Radosław Rowicki"
+maintainer:          "rr386088@students.mimuw.edu.pl"
+copyright:           "2019 Radosław Rowicki"
+
+extra-source-files:
+- README.md
+
+description:         Please see the README on GitHub at <https://github.com/radrow/instant-lang#readme>
+
+dependencies:
+- base >= 4.7 && < 5
+
+library:
+  source-dirs: src
+  default-extensions:
+    - LambdaCase
+    - GADTs
+    - DataKinds
+    - MultiWayIf
+    - KindSignatures
+  dependencies:
+    - megaparsec
+    - mtl
+    - containers
+    - transformers
+    - parser-combinators
+    - lens
+
+executables:
+  insc_jvm:
+    main:                Main.hs
+    source-dirs:         app/insc_jvm
+    ghc-options:
+    - -threaded
+    - -O3
+    - -Wall
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - instant-lang
+    - filepath
+  insc_llvm:
+    main:                Main.hs
+    source-dirs:         app/insc_llvm
+    ghc-options:
+    - -threaded
+    - -O3
+    - -Wall
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - instant-lang
+    - filepath
