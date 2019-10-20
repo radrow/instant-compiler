@@ -28,7 +28,7 @@ skip = L.space (void spaceChar) empty empty
 lex :: Parser a -> Parser a
 lex = L.lexeme skip
 
--- |Identifier starting with lower-case character
+
 lId :: Parser String
 lId = lex $ liftA2 (:) lowerChar (many alphaNumChar)
 
@@ -37,13 +37,11 @@ unsigned :: Parser Int
 unsigned = lex $ L.decimal
 
 
--- |Specific operator
 operator :: String -> Parser ()
 operator o =
   lex $ try $ string o *> notFollowedBy (oneOf "=+-/*;")
 
 
--- |Surround parser with parentheses
 paren :: Parser a -> Parser a
 paren = between (L.symbol skip "(") (L.symbol skip ")")
 
@@ -63,6 +61,7 @@ astE2 = msum
   , AST12 <$> astE1
   ]
 
+
 astE3 :: Parser (AST 'E3)
 astE3 = msum
   [ liftA2 ASTPlus (try $ astE2 <* operator "+") astE3
@@ -70,11 +69,13 @@ astE3 = msum
   , AST23 <$> astE2
   ]
 
+
 astSt :: Parser (AST 'St)
 astSt = msum
   [ liftA2 ASTAss (try $ lId <* operator "=") astE3
   , ASTExpr <$> astE3
   ]
+
 
 astP :: Parser (AST 'P)
 astP = AST <$> sepBy astSt (operator ";")

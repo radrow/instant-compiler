@@ -1,9 +1,9 @@
 module Instant.JVM(build) where
 
-import Control.Monad.Reader
+import           Control.Monad.Reader
 import qualified Data.Map as M
-import Data.Map(Map)
-import System.FilePath
+import           Data.Map(Map)
+import           System.FilePath
 
 import Instant.Types
 
@@ -21,7 +21,9 @@ data JVMOp
   | INVOKEVIRTUAL Int String
   deriving (Show)
 
+
 type JVM = [JVMOp]
+
 
 serializeOp :: JVMOp -> String
 serializeOp = \case
@@ -63,8 +65,11 @@ invocation filename = unlines
 
 
 type JVMCompiler = Reader (Map String Int)
+
+
 getVar :: String -> JVMCompiler Int
 getVar v = asks (M.! v)
+
 
 compileExpr :: Expr -> JVMCompiler JVM
 compileExpr = \case
@@ -80,6 +85,7 @@ compileExpr = \case
   EMinus a b -> join <$> sequence [compileExpr a, compileExpr b, pure [SUB]]
   EMult a b -> join <$> sequence [compileExpr a, compileExpr b, pure [MUL]]
   EDiv a b -> join <$> sequence [compileExpr a, compileExpr b, pure [DIV]]
+
 
 compileStmt :: InstantStmt -> JVMCompiler JVM
 compileStmt = \case
@@ -110,6 +116,7 @@ compileInstant filename code = do
     funBody ++
     "return\n" ++
     ".end method\n"
+
 
 build :: String -> Instant -> String
 build filename code =

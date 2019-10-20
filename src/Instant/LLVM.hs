@@ -1,41 +1,49 @@
 module Instant.LLVM(build) where
 
-import Data.List
-import Data.Map(Map)
+import           Data.List
+import           Data.Map(Map)
 import qualified Data.Map as M
-import Control.Monad.State
+import           Control.Monad.State
 
 import Instant.Types
+
 
 data LLVMType
   = LLTInt Int
   | LLTPtr LLVMType
   | LLTVargs
 
+
 i32 :: LLVMType
 i32 = LLTInt 32
+
 
 i8 :: LLVMType
 i8 = LLTInt 8
 
+
 ptr :: LLVMType -> LLVMType
 ptr = LLTPtr
+
 
 data LLVMLit
   = LLLReg String
   | LLLInt Int
   | LLLGetElementPtr (Int, LLVMType) String (LLVMType, LLVMLit) (LLVMType, LLVMLit)
 
+
 data LLVMOp
   = LLOAssg String LLVMExpr
   | LLOCall LLVMType [LLVMType] String [(LLVMType, LLVMLit)]
   | LLORet LLVMType LLVMLit
+
 
 data LLVMExpr
   = LLEAdd LLVMType LLVMLit LLVMLit
   | LLESub LLVMType LLVMLit LLVMLit
   | LLEMul LLVMType LLVMLit LLVMLit
   | LLEDiv LLVMType LLVMLit LLVMLit
+
 
 type LLVM = [LLVMOp]
 
@@ -51,6 +59,7 @@ serializeLit = \case
            , serializeType t1, " ", serializeLit v1, ", "
            , serializeType t2, " ", serializeLit v2, ")"
            ]
+
 
 serializeType :: LLVMType -> String
 serializeType = \case
@@ -92,6 +101,8 @@ data CompilerState = CompilerState
   { csStore :: Int
   , csVarMap :: Map String Int
   }
+
+
 type LLVMCompiler = State CompilerState
 
 
@@ -170,6 +181,7 @@ compileInstant code = do
   llcode <- (++[LLORet i32 (LLLInt 0)]) . join <$>
     traverse compileStmt (instantCode code)
   pure $ invocation ++ concat (fmap ((<>"\n") . ("  "<>) . serializeOp) llcode) ++ "\n}"
+
 
 build :: Instant -> String
 build code =

@@ -4,7 +4,7 @@ module Instant.Types.Syntax where
 
 import qualified Data.Set as S
 import qualified Data.Map as M
-import Data.Map(Map)
+import           Data.Map(Map)
 
 
 data TermType
@@ -18,20 +18,20 @@ data TermType
 data AST (termType :: TermType) where
   ASTPlus  :: AST 'E2 -> AST 'E3 -> AST 'E3
   ASTMinus :: AST 'E2 -> AST 'E3 -> AST 'E3
-  AST23    :: AST 'E2           -> AST 'E3
+  AST23    :: AST 'E2            -> AST 'E3
 
   ASTMult  :: AST 'E1 -> AST 'E2 -> AST 'E2
   ASTDiv   :: AST 'E1 -> AST 'E2 -> AST 'E2
-  AST12    :: AST 'E1           -> AST 'E2
+  AST12    :: AST 'E1            -> AST 'E2
 
-  ASTInt   :: Int    -> AST 'E1
-  ASTVar   :: String -> AST 'E1
-  ASTParen :: AST 'E3 -> AST 'E1
+  ASTInt   :: Int                -> AST 'E1
+  ASTVar   :: String             -> AST 'E1
+  ASTParen :: AST 'E3            -> AST 'E1
 
-  ASTExpr  :: AST 'E3           -> AST 'St
-  ASTAss   :: String -> AST 'E3 -> AST 'St
+  ASTExpr  :: AST 'E3            -> AST 'St
+  ASTAss   :: String -> AST 'E3  -> AST 'St
 
-  AST      :: [AST 'St] -> AST 'P
+  AST      :: [AST 'St]          -> AST 'P
 deriving instance Eq (AST t)
 deriving instance Show (AST t)
 
@@ -80,17 +80,17 @@ rtolBalance :: Expr -> Expr
 rtolBalance = \case
   -- task requirements enforce right-assoc of +
   (EMinus a (EMinus b c)) -> rtolBalance (EMinus (EMinus a b) c)
-  (EPlus a (EMinus b c)) -> rtolBalance (EMinus (EPlus a b) c)
-  (EMinus a (EPlus b c)) -> rtolBalance (EPlus (EMinus a b) c)
-  (EMult a (EMult b c)) -> rtolBalance (EMult (EMult a b) c)
-  (EDiv a (EDiv b c)) -> rtolBalance (EDiv (EDiv a b) c)
-  (EMult a (EDiv b c)) -> rtolBalance (EDiv (EMult a b) c)
-  (EDiv a (EMult b c)) -> rtolBalance (EMult (EDiv a b) c)
+  (EPlus a (EMinus b c))  -> rtolBalance (EMinus (EPlus a b) c)
+  (EMinus a (EPlus b c))  -> rtolBalance (EPlus (EMinus a b) c)
+  (EMult a (EMult b c))   -> rtolBalance (EMult (EMult a b) c)
+  (EDiv a (EDiv b c))     -> rtolBalance (EDiv (EDiv a b) c)
+  (EMult a (EDiv b c))    -> rtolBalance (EDiv (EMult a b) c)
+  (EDiv a (EMult b c))    -> rtolBalance (EMult (EDiv a b) c)
 
-  EPlus a b -> EPlus (rtolBalance a) (rtolBalance b)
-  EMinus a b -> EMinus (rtolBalance a) (rtolBalance b)
-  EMult a b -> EMult (rtolBalance a) (rtolBalance b)
-  EDiv a b -> EDiv (rtolBalance a) (rtolBalance b)
+  EPlus a b               -> EPlus (rtolBalance a) (rtolBalance b)
+  EMinus a b              -> EMinus (rtolBalance a) (rtolBalance b)
+  EMult a b               -> EMult (rtolBalance a) (rtolBalance b)
+  EDiv a b                -> EDiv (rtolBalance a) (rtolBalance b)
 
   other -> other
 
