@@ -10,7 +10,6 @@ Following external libraries were used:
 - megaparsec
 - mtl
 - containers
-- transformers
 - parser-combinators
 
 

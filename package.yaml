@@ -27,7 +27,6 @@ library:
     - megaparsec
     - mtl
     - containers
-    - transformers
     - parser-combinators
 
 executables:
