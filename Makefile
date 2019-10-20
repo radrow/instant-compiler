@@ -1,4 +1,4 @@
 all: compiler
 
 compiler:
-	haskell_stack install --local-bin-path=$(shell pwd) || stack install --local-bin-path=$(shell pwd)
+	haskell_stack install --local-bin-path=$(shell pwd) || stack install --local-bin-path=$(shell pwd) || /home/students/inf/PUBLIC/MRJP/Stack/stack install --local-bin-path=$(shell pwd)
