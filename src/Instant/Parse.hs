@@ -1,4 +1,3 @@
-{-# LANGUAGE RankNTypes #-}
 module Instant.Parse where
 
 import           Control.Applicative        (liftA2)
