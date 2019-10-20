@@ -1,10 +1,12 @@
 module Instant.JVM(build) where
 
 import Control.Monad.Reader
-import Instant.Types
-
 import qualified Data.Map as M
 import Data.Map(Map)
+import System.FilePath
+
+import Instant.Types
+
 
 data JVMOp
   = ICONST Int
@@ -49,7 +51,7 @@ serializeOp = \case
 invocation :: String -> String
 invocation filename = unlines
   [ ".source " ++ filename
-  , ".class public Inst"
+  , ".class public " ++ takeBaseName filename
   , ".super java/lang/Object"
   , ""
   , ".method public <init>()V"

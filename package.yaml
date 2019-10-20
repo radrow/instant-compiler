@@ -13,6 +13,7 @@ description:         Please see the README on GitHub at <https://github.com/radr
 
 dependencies:
 - base >= 4.7 && < 5
+- filepath
 
 library:
   source-dirs: src
@@ -28,7 +29,6 @@ library:
     - containers
     - transformers
     - parser-combinators
-    - lens
 
 executables:
   insc_jvm:
@@ -42,7 +42,7 @@ executables:
     - -with-rtsopts=-N
     dependencies:
     - instant-lang
-    - filepath
+    - process
   insc_llvm:
     main:                Main.hs
     source-dirs:         app/insc_llvm
@@ -54,4 +54,4 @@ executables:
     - -with-rtsopts=-N
     dependencies:
     - instant-lang
-    - filepath
+    - process
