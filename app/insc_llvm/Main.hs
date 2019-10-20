@@ -16,7 +16,6 @@ main = do
       case parse file contents of
         Left e -> hPutStrLn stderr e >> exitFailure
         Right inst -> do
-          let fileName = takeFileName file
-              newName = replaceExtension fileName "ll"
+          let newName = replaceExtension file "ll"
           writeFile newName (toLLVM inst)
     _ -> hPutStrLn stderr "BAD ARGS: " >> exitFailure
