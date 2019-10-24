@@ -72,19 +72,23 @@ getVar v = asks (M.! v)
 
 
 compileExpr :: Expr -> JVMCompiler JVM
-compileExpr = \case
-  EInt i -> pure [ICONST i]
-  EVar v -> getVar v >>= \i -> pure [ILOAD i]
+compileExpr e = ($[]) . snd <$> builder e where
+  builder :: Expr -> JVMCompiler (Int, JVM -> JVM)
+  builder = \case -- optimizes stack
+    EInt i     -> pure (1, ((ICONST i):))
+    EVar v     -> getVar v >>= \i -> pure (1, ((ILOAD i):))
+    EPlus a b  -> buildOp ADD a b
+    EMinus a b -> buildOp SUB a b
+    EMult a b  -> buildOp MUL a b
+    EDiv a b   -> buildOp DIV a b
 
-  EPlus a b -> join <$> sequence
-    -- because of assoc requirement
-    [ compileExpr b
-    , compileExpr a
-    , pure [ADD]
-    ]
-  EMinus a b -> join <$> sequence [compileExpr a, compileExpr b, pure [SUB]]
-  EMult a b -> join <$> sequence [compileExpr a, compileExpr b, pure [MUL]]
-  EDiv a b -> join <$> sequence [compileExpr a, compileExpr b, pure [DIV]]
+  buildOp op a b = do
+      (ai, ab) <- builder a
+      (bi, bb) <- builder b
+      case compare ai bi of
+        EQ -> pure (ai + 1, ab . bb . (op:))
+        LT -> pure (bi    , bb . ab . (op:))
+        GT -> pure (ai    , ab . bb . (op:))
 
 
 compileStmt :: InstantStmt -> JVMCompiler JVM
