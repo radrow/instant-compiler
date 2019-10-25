@@ -16,11 +16,11 @@ main = do
     file:rest -> do
       let noBin = "no-bin" `elem` rest
       contents <- readFile file
-      case parse file contents of
+      case parse file contents >>= toLLVM of
         Left e -> hPutStrLn stderr e >> exitFailure
-        Right inst -> do
+        Right llvmCode -> do
           let llFile = replaceExtension file "ll"
-          writeFile llFile (toLLVM inst)
+          writeFile llFile llvmCode
           when (not noBin) $ do
             let outpath = replaceExtension file "bc"
             callProcess "llvm-as" [llFile, "-o", outpath]

@@ -4,16 +4,16 @@ import           Instant.Parse
 import qualified Instant.JVM as JVM
 import qualified Instant.LLVM as LLVM
 
-import Instant.Types
+import Instant.Syntax
 
 
 parse :: String -> String -> Either String Instant
 parse filename code = entail <$> parseInstant filename code
 
 
-toJVM :: String -> Instant -> String
+toJVM :: String -> Instant -> Either String String
 toJVM = JVM.build
 
 
-toLLVM :: Instant -> String
+toLLVM :: Instant -> Either String String
 toLLVM = LLVM.build

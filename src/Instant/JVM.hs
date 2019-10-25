@@ -1,11 +1,15 @@
 module Instant.JVM(build) where
 
 import           Control.Monad.Reader
+import           Control.Monad.State.Strict
+import           Control.Monad.Except
 import qualified Data.Map as M
 import           Data.Map(Map)
+import qualified Data.Set as S
+import           Data.Set(Set)
 import           System.FilePath
 
-import Instant.Types
+import Instant.Syntax
 
 
 data JVMOp
@@ -64,23 +68,37 @@ invocation filename = unlines
   ]
 
 
-type JVMCompiler = Reader (Map String Int)
+type JVMCompiler = ExceptT String (StateT (Set String) (Reader (Map String Int)))
 
 
-getVar :: String -> JVMCompiler Int
-getVar v = asks (M.! v)
+getVarName :: String -> JVMCompiler Int
+getVarName v = asks (M.! v)
+
+
+checkVarInit :: Ann -> String -> JVMCompiler ()
+checkVarInit ann v =
+  get >>= \s -> if S.member v s
+                then pure ()
+                else throwError $ at ann ++ " Undefined variable " ++ v
+
+
+registerVar :: String -> JVMCompiler ()
+registerVar v = modify (S.insert v)
 
 
 compileExpr :: Expr -> JVMCompiler JVM
 compileExpr e = ($[]) . snd <$> builder e where
   builder :: Expr -> JVMCompiler (Int, JVM -> JVM)
   builder = \case -- optimizes stack
-    EInt i     -> pure (1, ((ICONST i):))
-    EVar v     -> getVar v >>= \i -> pure (1, ((ILOAD i):))
-    EPlus a b  -> buildOp ADD a b
-    EMinus a b -> buildOp SUB a b
-    EMult a b  -> buildOp MUL a b
-    EDiv a b   -> buildOp DIV a b
+    EInt _ i     -> pure (1, ((ICONST i):))
+    EVar ann v   -> do
+      checkVarInit ann v
+      i <- getVarName v
+      pure (1, ((ILOAD i):))
+    EPlus _ a b  -> buildOp ADD a b
+    EMinus _ a b -> buildOp SUB a b
+    EMult _ a b  -> buildOp MUL a b
+    EDiv _ a b   -> buildOp DIV a b
 
   buildOp op a b = do
       (ai, ab) <- builder a
@@ -93,14 +111,15 @@ compileExpr e = ($[]) . snd <$> builder e where
 
 compileStmt :: InstantStmt -> JVMCompiler JVM
 compileStmt = \case
-  IExpr e -> join <$> sequence
+  IExpr _ e -> join <$> sequence
     [ pure [GETSTATIC "java/lang/System/out" "Ljava/io/PrintStream;"]
     , compileExpr e
     , pure [INVOKEVIRTUAL 1 "java/io/PrintStream/println(I)V"]
     ]
-  IAssg v e -> do
+  IAssg _ v e -> do
     easm <- compileExpr e
-    idx <- getVar v
+    registerVar v
+    idx <- getVarName v
     pure $ easm ++ [ISTORE idx]
 
 
@@ -122,9 +141,9 @@ compileInstant filename code = do
     ".end method\n"
 
 
-build :: String -> Instant -> String
+build :: String -> Instant -> Either String String
 build filename code =
-  runReader (compileInstant filename code) (varMap code)
+  runReader (evalStateT (runExceptT $ compileInstant filename code) S.empty) (varMap code)
 
 
 estimateStackSize :: JVM -> Int

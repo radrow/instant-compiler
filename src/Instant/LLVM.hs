@@ -3,9 +3,10 @@ module Instant.LLVM(build) where
 import           Data.List
 import           Data.Map(Map)
 import qualified Data.Map as M
-import           Control.Monad.State
+import           Control.Monad.State.Strict
+import           Control.Monad.Except
 
-import Instant.Types
+import Instant.Syntax
 
 
 data LLVMType
@@ -103,7 +104,7 @@ data CompilerState = CompilerState
   }
 
 
-type LLVMCompiler = State CompilerState
+type LLVMCompiler = ExceptT String (State CompilerState)
 
 
 lastId :: LLVMCompiler Int
@@ -112,6 +113,12 @@ lastId = gets csStore
 
 newRef :: LLVMCompiler String
 newRef = modify (\s -> s{csStore = csStore s + 1}) *> (("val_"<>) . show <$> lastId)
+
+
+lookupVarAt :: Ann -> String -> LLVMCompiler String
+lookupVarAt ann v = gets ((M.lookup v) . csVarMap) >>= \case
+  Nothing -> throwError $ at ann ++ " Undefined variable " ++ v
+  Just i -> pure ("var_" ++ v ++ show i)
 
 
 lookupVar :: String -> LLVMCompiler String
@@ -139,23 +146,23 @@ compileOperator op t a b = do
 
 compileExpr :: Expr -> LLVMCompiler (LLVMLit, LLVM)
 compileExpr = \case
-  EInt i -> pure (LLLInt i, [])
-  EVar s -> do
-    v <- lookupVar s
+  EInt _ i -> pure (LLLInt i, [])
+  EVar ann s -> do
+    v <- lookupVarAt ann s
     pure (LLLReg v, [])
-  EPlus a b -> compileOperator LLEAdd i32 a b
-  EMinus a b -> compileOperator LLESub i32 a b
-  EMult a b -> compileOperator LLEMul i32 a b
-  EDiv a b -> compileOperator LLEDiv i32 a b
+  EPlus _ a b -> compileOperator LLEAdd i32 a b
+  EMinus _ a b -> compileOperator LLESub i32 a b
+  EMult _ a b -> compileOperator LLEMul i32 a b
+  EDiv _ a b -> compileOperator LLEDiv i32 a b
 
 
 compileStmt :: InstantStmt -> LLVMCompiler LLVM
 compileStmt = \case
-  IAssg v e -> do
+  IAssg _ v e -> do
     (valRef, ecode) <- compileExpr e
     ref <- initVar v
     pure $ ecode ++ [LLOAssg ref (LLEAdd i32 valRef (LLLInt 0))]
-  IExpr e -> do
+  IExpr _ e -> do
     (valRef, ecode) <- compileExpr e
     let call =
           LLOCall i32 [ptr i8, LLTVargs] "@printf"
@@ -183,7 +190,7 @@ compileInstant code = do
   pure $ invocation ++ concat (fmap ((<>"\n") . ("  "<>) . serializeOp) llcode) ++ "\n}"
 
 
-build :: Instant -> String
+build :: Instant -> Either String String
 build code =
-  evalState (compileInstant code) (CompilerState 0 M.empty)
+  evalState (runExceptT $ compileInstant code) (CompilerState 0 M.empty)
 

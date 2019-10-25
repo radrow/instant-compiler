@@ -11,14 +11,27 @@ import           Text.Megaparsec.Char
 import qualified Text.Megaparsec.Char.Lexer as L
 import           Prelude hiding (lex)
 
-import Instant.Types.Syntax
+import Instant.Syntax
 
 
 type Parser = ParsecT Void String Identity
 parseInstant :: String -> String -> Either String (AST 'P)
-parseInstant file inp = first
+parseInstant filename inp = first
   (concat . fmap parseErrorPretty . bundleErrors)
-  (parse ast file inp)
+  (parse ast filename inp)
+
+
+getAnn :: Parser Ann
+getAnn = do
+  p <- getSourcePos
+  return $ Ann
+    (fromIntegral $ unPos $ sourceLine p)
+    (fromIntegral $ unPos $ sourceColumn p)
+    (sourceName p)
+
+
+withAnn :: Parser (Ann -> a) -> Parser a
+withAnn p = liftA2 (flip ($)) getAnn p
 
 
 skip :: Parser ()
@@ -46,9 +59,9 @@ paren :: Parser a -> Parser a
 paren = between (L.symbol skip "(") (L.symbol skip ")")
 
 
-infixL :: Parser (a -> b -> a) -> Parser b -> a -> Parser a
+infixL :: Parser (Ann -> a -> b -> a) -> Parser b -> a -> Parser a
 infixL op p x = do
-  f <- op
+  f <- withAnn op
   y <- p
   let r = f x y
   infixL op p r <|> return r
@@ -56,7 +69,7 @@ infixL op p x = do
 
 astE1 :: Parser (AST 'E1)
 astE1 = choice
-  [ liftA2 ASTPlus (try $ astE2 <* operator "+") astE1
+  [ withAnn (pure ASTPlus) <*> (try $ astE2 <* operator "+") <*> astE1
   , AST21 <$> astE2
   ]
 
@@ -80,15 +93,15 @@ astE3 = choice
 
 astE4 :: Parser (AST 'E4)
 astE4 = choice
-  [ ASTInt <$> unsigned
-  , ASTVar <$> lId
+  [ withAnn (pure ASTInt) <*> unsigned
+  , withAnn (pure ASTVar) <*> lId
   , ASTParen <$> paren astE1
   ]
 
 astSt :: Parser (AST 'St)
 astSt = choice
-  [ liftA2 ASTAss (try $ lId <* operator "=") astE1
-  , ASTExpr <$> astE1
+  [ withAnn (pure ASTAss) <*> (try $ lId <* operator "=") <*> astE1
+  , withAnn (pure ASTExpr) <*> astE1
   ]
 
 

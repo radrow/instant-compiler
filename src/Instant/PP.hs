@@ -1,22 +1,22 @@
 module Instant.PP where
 
-import Instant.Types.Syntax
+import Instant.Syntax
 
 
 ppExpr :: Expr -> String
 ppExpr = \case
-  EInt i -> show i
-  EVar s -> s
-  EPlus a b -> "(" <> ppExpr a <> " + " <> ppExpr b <> ")"
-  EMinus a b -> "(" <> ppExpr a <> " - " <> ppExpr b <> ")"
-  EMult a b -> "(" <> ppExpr a <> " * " <> ppExpr b <> ")"
-  EDiv a b -> "(" <> ppExpr a <> " / " <> ppExpr b <> ")"
+  EInt _ i -> show i
+  EVar _ s -> s
+  EPlus _ a b -> "(" <> ppExpr a <> " + " <> ppExpr b <> ")"
+  EMinus _ a b -> "(" <> ppExpr a <> " - " <> ppExpr b <> ")"
+  EMult _ a b -> "(" <> ppExpr a <> " * " <> ppExpr b <> ")"
+  EDiv _ a b -> "(" <> ppExpr a <> " / " <> ppExpr b <> ")"
 
 
 ppStmt :: InstantStmt -> String
 ppStmt = \case
-  IExpr e -> ppExpr e
-  IAssg v e -> v <> " = " <> ppExpr e
+  IExpr _ e -> ppExpr e
+  IAssg _ v e -> v <> " = " <> ppExpr e
 
 
 ppInstant :: Instant -> String

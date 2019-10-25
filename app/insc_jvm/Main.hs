@@ -15,12 +15,12 @@ main = do
   case args of
     file:rest -> do
       let noBin = "no-bin" `elem` rest
+          jasminName = replaceExtension file "j"
       contents <- readFile file
-      case parse file contents of
+      case parse file contents >>= toJVM jasminName of
         Left e -> hPutStrLn stderr e >> exitFailure
-        Right inst -> do
-          let jasminName = replaceExtension file "j"
-          writeFile jasminName (toJVM jasminName inst)
+        Right jasminCode -> do
+          writeFile jasminName jasminCode
           when (not noBin) $ do
             let outpath = takeDirectory file
             callProcess "jasmin" [jasminName, "-d", outpath]
