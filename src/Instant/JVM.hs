@@ -105,7 +105,7 @@ compileExpr e = ($[]) . snd <$> builder e where
       (bi, bb) <- builder b
       case compare ai bi of
         EQ -> pure (ai + 1, ab . bb . (op:))
-        LT -> pure (bi    , bb . ab . (op:))
+        LT -> pure (bi    , bb . ab . (SWAP:) . (op:))
         GT -> pure (ai    , ab . bb . (op:))
 
 
