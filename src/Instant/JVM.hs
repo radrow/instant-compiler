@@ -86,6 +86,12 @@ registerVar :: String -> JVMCompiler ()
 registerVar v = modify (S.insert v)
 
 
+comutative :: JVMOp -> Bool
+comutative ADD = True
+comutative MUL = True
+comutative _   = False
+
+
 compileExpr :: Expr -> JVMCompiler JVM
 compileExpr e = ($[]) . snd <$> builder e where
   builder :: Expr -> JVMCompiler (Int, JVM -> JVM)
@@ -105,7 +111,7 @@ compileExpr e = ($[]) . snd <$> builder e where
       (bi, bb) <- builder b
       case compare ai bi of
         EQ -> pure (ai + 1, ab . bb . (op:))
-        LT -> pure (bi    , bb . ab . (SWAP:) . (op:))
+        LT -> pure (bi    , bb . ab . (if comutative op then id else (SWAP:)) . (op:))
         GT -> pure (ai    , ab . bb . (op:))
 
 
